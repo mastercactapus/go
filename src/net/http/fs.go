@@ -593,13 +593,35 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 	serveContent(w, r, d.Name(), d.ModTime(), sizeFunc, f)
 }
 
+// errIsNotExist determines if an error represents a missing file. It's
+// important that this is only used to check errors from a context of
+// opening or otherwise "accessing" a file. This is because errors like
+// "not a directory" mean something different for a call to Open() compared
+// to something like Readdirnames().
+func errIsNotExist(err error) bool {
+	if os.IsNotExist(err) {
+		return true
+	}
+
+	// doing string comparison so we don't need to
+	// pull in `syscall` and the associated build flags
+	//
+	// this check is necessary on unix systems that return syscall.ENOTDIR
+	// on Open() in some cases for a missing file
+	if perr, ok := err.(*os.PathError); ok && perr.Op == "open" && strings.Contains(perr.Err.Error(), "not a directory") {
+		return true
+	}
+
+	return false
+}
+
 // toHTTPError returns a non-specific HTTP error message and status code
 // for a given non-nil error value. It's important that toHTTPError does not
 // actually return err.Error(), since msg and httpStatus are returned to users,
 // and historically Go's ServeContent always returned just "404 Not Found" for
 // all errors. We don't want to start leaking information in error messages.
 func toHTTPError(err error) (msg string, httpStatus int) {
-	if os.IsNotExist(err) {
+	if errIsNotExist(err) {
 		return "404 page not found", StatusNotFound
 	}
 	if os.IsPermission(err) {
