@@ -1161,6 +1161,22 @@ func TestLinuxSendfileChild(*testing.T) {
 	}
 }
 
+// Issue 18984
+func TestFileServerFileStatError(t *testing.T) {
+	defer afterTest(t)
+	ts := httptest.NewServer(FileServer(Dir("testdata")))
+	defer ts.Close()
+
+	res, err := Get(ts.URL + "/index.html/not-a-file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 404 {
+		t.Errorf("wanted 404 not found status code; got: %d", res.StatusCode)
+	}
+}
+
 func TestFileServerCleanPath(t *testing.T) {
 	tests := []struct {
 		path     string
