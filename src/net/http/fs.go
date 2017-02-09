@@ -33,8 +33,9 @@ import (
 // An empty Dir is treated as ".".
 type Dir string
 
-// pathNotExist determines if any parent paths of fullName
-// either don't exist, or are not a directory.
+// getPathError will try to find a permission or not-exist error up the tree
+// for the given path and return it, returning the original error if unsuccessful.
+// In the case that a parent path is a file, os.ErrNotExist is returned instead.
 func getPathError(originalErr error, fullName string) error {
 	var s os.FileInfo
 	var err error
@@ -75,6 +76,8 @@ func (d Dir) Open(name string) (File, error) {
 			return nil, err
 		}
 
+		// Some errors are ambiguous that really mean a file doesn't
+		// exist. To determine that, we need to search up the tree.
 		return nil, getPathError(err, fullName)
 	}
 	return f, nil
