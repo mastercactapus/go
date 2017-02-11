@@ -61,7 +61,14 @@ func execSecurityRoots() (*CertPool, error) {
 		println(fmt.Sprintf("crypto/x509: %d certs have a trust policy", len(hasPolicy)))
 	}
 
-	cmd := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p", "/System/Library/Keychains/SystemRootCertificates.keychain")
+	cmd := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p",
+		"/System/Library/Keychains/SystemRootCertificates.keychain",
+		"/Library/Keychains/System.keychain",
+		os.ExpandEnv("$HOME/Library/Keychains/login.keychain"),
+
+		// Fresh installs of Sierra use a slightly different path for the login keychain
+		os.ExpandEnv("$HOME/Library/Keychains/login.keychain-db"),
+	)
 	data, err := cmd.Output()
 	if err != nil {
 		return nil, err

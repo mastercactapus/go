@@ -157,24 +157,6 @@ int FetchPEMRoots(CFDataRef *pemRoots, CFDataRef *untrustedPemRoots) {
 				}
 				CFRelease(trustSettings);
 			}
-			// We only want to add Root CAs, so make sure Subject and Issuer Name match
-			CFDataRef subjectName = SecCertificateCopyNormalizedSubjectContent(cert, &errRef);
-			if (errRef != NULL) {
-				CFRelease(errRef);
-				continue;
-			}
-			CFDataRef issuerName = SecCertificateCopyNormalizedIssuerContent(cert, &errRef);
-			if (errRef != NULL) {
-				CFRelease(subjectName);
-				CFRelease(errRef);
-				continue;
-			}
-			Boolean equal = CFEqual(subjectName, issuerName);
-			CFRelease(subjectName);
-			CFRelease(issuerName);
-			if (!equal) {
-				continue;
-			}
 
 			// Note: SecKeychainItemExport is deprecated as of 10.7 in favor of SecItemExport.
 			// Once we support weak imports via cgo we should prefer that, and fall back to this
